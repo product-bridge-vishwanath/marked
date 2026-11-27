@@ -6,7 +6,7 @@ Everything runs in the browser. There's no account and no server, and your data 
 
 ## Features
 
-- **Activities with emoji:** a name, an emoji (pick from the grid or type any emoji), a color, and an optional weekly goal (1–7 times a week).
+- **Activities with emoji:** a name, an emoji chosen with your device's own emoji keyboard or picker, a color, and an optional weekly goal (1–7 times a week).
 - **Two ways to mark:**
   - Select an activity chip, then tap days to toggle it.
   - Select **All** and tap a day to tick several activities on a checklist. You can also long-press or right-click any day to open the checklist (Shift+Enter from the keyboard).

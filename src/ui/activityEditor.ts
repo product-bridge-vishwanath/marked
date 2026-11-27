@@ -1,4 +1,4 @@
-import { EMOJI_GROUPS, isSingleGrapheme, lastGrapheme } from '../lib/emoji';
+import { detectPlatform, emojiHint, isEmoji, lastGrapheme } from '../lib/emoji';
 import { COLORS, type Activity } from '../state/schema';
 import {
   addActivity,
@@ -13,17 +13,27 @@ import { h, plural, toast } from './dom';
 
 /** Create a new activity (no argument) or edit an existing one. */
 export function openActivityEditor(existing?: Activity, preset?: { name: string; emoji: string }) {
-  let emoji = existing?.emoji ?? preset?.emoji ?? '✅';
+  let emoji = existing?.emoji ?? preset?.emoji ?? '';
   let color = existing?.color ?? nextColor();
+  const platform = detectPlatform();
+  const touch = platform === 'ios' || platform === 'android';
 
   const preview = h('span', { class: 'chip-preview' });
+  const error = h('p', { class: 'form-error', role: 'alert' });
+
+  // The emoji box is a plain text field: focusing it brings up the device keyboard,
+  // and the user switches to their own emoji keyboard / picker.
   const emojiInput = h('input', {
     class: 'emoji-input',
     value: emoji,
+    placeholder: '😀',
     'aria-label': 'Emoji',
+    'aria-describedby': 'emoji-hint',
     autocomplete: 'off',
-    inputmode: 'text',
-    title: 'Type or paste any emoji',
+    autocorrect: 'off',
+    autocapitalize: 'off',
+    spellcheck: false,
+    enterkeyhint: 'next',
   });
   const nameInput = h('input', {
     class: 'text-input',
@@ -32,8 +42,8 @@ export function openActivityEditor(existing?: Activity, preset?: { name: string;
     maxlength: 40,
     required: true,
     'aria-label': 'Activity name',
+    enterkeyhint: 'done',
   });
-  const error = h('p', { class: 'form-error', role: 'alert' });
 
   const goalSelect = h(
     'select',
@@ -48,47 +58,36 @@ export function openActivityEditor(existing?: Activity, preset?: { name: string;
     const chip = h(
       'span',
       { class: 'chip active' },
-      h('span', { class: 'chip-emoji' }, emoji || '?'),
+      h('span', { class: 'chip-emoji' }, emoji || '·'),
       h('span', null, nameInput.value.trim() || 'Activity'),
     );
     chip.style.setProperty('--c', color);
     preview.replaceChildren(chip);
-    picker.querySelectorAll('.emoji-btn').forEach((b) => b.classList.toggle('selected', b.textContent === emoji));
-  };
-
-  const setEmoji = (value: string) => {
-    emoji = value;
-    emojiInput.value = value;
-    updatePreview();
   };
 
   emojiInput.addEventListener('input', () => {
     const g = lastGrapheme(emojiInput.value);
-    emoji = g;
     emojiInput.value = g;
+    if (g && !isEmoji(g)) {
+      error.textContent = 'That’s not an emoji. Use your keyboard’s emoji picker.';
+      emojiInput.value = '';
+      emoji = '';
+    } else {
+      error.textContent = '';
+      emoji = g;
+      // Picked one: move on to the name if it's still empty.
+      if (g && !nameInput.value.trim()) nameInput.focus();
+    }
     updatePreview();
   });
   emojiInput.addEventListener('focus', () => emojiInput.select());
+  emojiInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      nameInput.focus();
+    }
+  });
   nameInput.addEventListener('input', updatePreview);
-
-  const picker = h(
-    'div',
-    { class: 'emoji-picker' },
-    EMOJI_GROUPS.map((group) =>
-      h(
-        'section',
-        null,
-        h('h4', null, group.name),
-        h(
-          'div',
-          { class: 'emoji-grid' },
-          group.emojis.map((e) =>
-            h('button', { type: 'button', class: 'emoji-btn', 'aria-label': e, onclick: () => setEmoji(e) }, e),
-          ),
-        ),
-      ),
-    ),
-  );
 
   const swatches = h(
     'div',
@@ -113,14 +112,14 @@ export function openActivityEditor(existing?: Activity, preset?: { name: string;
 
   const save = () => {
     const name = nameInput.value.trim();
+    if (!isEmoji(emoji)) {
+      error.textContent = 'Pick an emoji for this activity.';
+      emojiInput.focus();
+      return;
+    }
     if (!name) {
       error.textContent = 'Give the activity a name.';
       nameInput.focus();
-      return;
-    }
-    if (!isSingleGrapheme(emoji)) {
-      error.textContent = 'Pick one emoji.';
-      emojiInput.focus();
       return;
     }
     const weeklyGoal = goalSelect.value ? Number(goalSelect.value) : undefined;
@@ -143,10 +142,19 @@ export function openActivityEditor(existing?: Activity, preset?: { name: string;
         save();
       },
     },
-    h('div', { class: 'editor-row' }, emojiInput, nameInput),
+    h(
+      'div',
+      { class: 'editor-row' },
+      h('label', { class: 'emoji-field' }, emojiInput, h('span', { class: 'emoji-field-label' }, 'Emoji')),
+      nameInput,
+    ),
     error,
-    h('p', { class: 'hint' }, 'Pick an emoji below, or type or paste any emoji into the box.'),
-    picker,
+    h(
+      'p',
+      { class: 'emoji-hint', id: 'emoji-hint' },
+      h('strong', null, `${touch ? 'Tap' : 'Click'} the emoji box. `),
+      emojiHint(platform),
+    ),
     h('label', { class: 'field-label' }, 'Color'),
     swatches,
     h('label', { class: 'field-label' }, 'Weekly goal'),
@@ -208,5 +216,7 @@ export function openActivityEditor(existing?: Activity, preset?: { name: string;
     footer,
   });
   updatePreview();
-  if (!existing) nameInput.focus();
+  // New activity without an emoji yet: start in the emoji box so the keyboard comes up.
+  if (!existing && !emoji) emojiInput.focus();
+  else if (!existing) nameInput.focus();
 }

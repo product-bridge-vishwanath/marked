@@ -17,10 +17,6 @@ import { h, onPress, pct, toast } from './dom';
 const SUGGESTIONS = [
   { emoji: '🏃', name: 'Run' },
   { emoji: '📖', name: 'Read' },
-  { emoji: '💧', name: 'Drink water' },
-  { emoji: '🧘', name: 'Meditate' },
-  { emoji: '💪', name: 'Workout' },
-  { emoji: '😴', name: 'Sleep 8h' },
 ];
 
 /** The day just marked with a tap, so only that cell animates on the next render. */
