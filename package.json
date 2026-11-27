@@ -1,0 +1,21 @@
+{
+  "name": "daymarks",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Mark the days you did your activities. Multiple activities per day, emoji markers, insights. Runs fully in the browser.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "icons": "node scripts/gen-icons.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.4.0",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.2"
+  }
+}
